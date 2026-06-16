@@ -1,1 +1,928 @@
 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dama Maroc</title>
+<style>
+  :root {
+    --board-light: #e8d9b8;
+    --board-dark: #2f5d62;
+    --accent: #c1502e;
+    --accent-light: #e0a458;
+    --cream: #f4ecd8;
+    --ink: #1f2422;
+    --gold: #d4a23a;
+    --line: rgba(31,36,34,0.12);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(160deg, #20312f 0%, #1a2625 60%, #16201f 100%);
+    font-family: 'Trebuchet MS', 'Segoe UI', sans-serif;
+    color: var(--cream);
+    padding: 20px;
+  }
+
+  .app {
+    gap: 20px;
+    width: 100%;
+    display: flex;
+    max-width: 620px;
+    align-items: center;
+    flex-direction: column;
+  }
+
+  header {
+    text-align: center;
+  }
+
+  h1 {
+    margin: 0;
+    font-weight: 700;
+    font-size: 2.1rem;
+    color: var(--cream);
+    letter-spacing: 0.06em;
+    text-transform: lowercase;
+  }
+
+  h1 span {
+    color: var(--accent-light);
+  }
+
+  .subtitle {
+    margin: 6px 0 0;
+    font-size: 0.85rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(244,236,216,0.55);
+  }
+
+  .status-bar {
+    width: 100%;
+    display: flex;
+    padding: 16px;
+    font-size: 0.95rem;
+    border-radius: 10px;
+    align-items: center;
+    border: 1px solid var(--line);
+    justify-content: space-between;
+    background: rgba(244,236,216,0.06);
+  }
+
+  .turn-indicator {
+    gap: 8px;
+    display: flex;
+    font-weight: 600;
+    align-items: center;
+  }
+
+  .turn-dot {
+    width: 20px;
+    height: 20px;
+    border-radius: 5px;
+    border: 2px solid var(--cream);
+    transition: background 0.2s ease;
+  }
+
+  .turn-dot.dark {
+    background: #2a2522;
+    border-color: #6b5a4a;
+  }
+  .turn-dot.light {
+    border-color: #fff3dd;
+    background: var(--accent-light);
+  }
+
+  .scores {
+    gap: 16px;
+    display: flex;
+    font-size: 0.85rem;
+    color: rgba(244,236,216,0.7);
+  }
+
+  .scores b {
+    font-size: 1rem;
+    color: var(--cream);
+  }
+
+  .board-wrap {
+    padding: 10px;
+    overflow: hidden;
+    position: relative;
+    border-radius: 10px;
+    box-shadow: 0 18px 40px rgba(0,0,0,0.45);
+    background: linear-gradient(135deg, var(--gold), var(--accent) 50%, var(--gold));
+  }
+
+  .board {
+    display: grid;
+    overflow: hidden;
+    border-radius: 8px;
+    width: min(92vw, 600px);
+    height: min(92vw, 600px);
+    border: 2px solid var(--ink);
+    grid-template-rows: repeat(8, 1fr);
+    grid-template-columns: repeat(8, 1fr);
+  }
+
+  .square {
+    display: flex;
+    position: relative;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .square.light { background: var(--board-light); }
+  .square.dark { background: var(--board-dark); }
+
+  .square.selectable::after {
+    content: "";
+    width: 28%;
+    height: 28%;
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(212,162,58,0.85);
+    box-shadow: 0 0 12px rgba(212,162,58,0.7);
+    animation: pulse 1.4s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { transform: scale(0.85); opacity: 0.7; }
+    50% { transform: scale(1.1); opacity: 1; }
+  }
+
+  .square.selected {
+    box-shadow: inset 0 0 0 4px var(--accent-light);
+  }
+
+  .piece {
+    width: 76%;
+    height: 76%;
+    display: flex;
+    cursor: pointer;
+    font-weight: 700;
+    user-select: none;
+    font-size: 1.4rem;
+    border-radius: 50%;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+
+  .piece.dark {
+    color: var(--gold);
+    border: 2px solid #0d0a08;
+    background: radial-gradient(circle at 35% 30%, #4a3d33, #1c1714 75%);
+    box-shadow: 0 3px 6px rgba(0,0,0,0.5), inset 0 2px 4px rgba(255,255,255,0.08);
+  }
+
+  .piece.light {
+    color: #5a3a14;
+    border: 2px solid #a9742f;
+    box-shadow: 0 3px 6px rgba(0,0,0,0.4), inset 0 2px 4px rgba(255,255,255,0.4);
+    background: radial-gradient(circle at 35% 30%, #fff6e6, var(--accent-light) 75%);
+  }
+
+  .piece:hover {
+    transform: scale(1.06);
+  }
+
+  .piece.king::after {
+    content: "♛";
+    font-size: 1.3rem;
+  }
+
+  .controls {
+    gap: 10px;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  button {
+    background: var(--accent);
+    color: var(--cream);
+    border: none;
+    padding: 10px 18px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    letter-spacing: 0.03em;
+    transition: background 0.15s ease, transform 0.1s ease;
+  }
+
+  button:hover { background: #a8421f; transform: translateY(-1px); }
+  button:active { transform: translateY(0); }
+
+  button.secondary {
+    background: transparent;
+    border: 1px solid rgba(244,236,216,0.35);
+    color: var(--cream);
+  }
+
+  button.secondary:hover { background: rgba(244,236,216,0.08); }
+
+  .message {
+    min-height: 22px;
+    font-size: 0.9rem;
+    color: var(--accent-light);
+    text-align: center;
+    font-weight: 600;
+  }
+
+  .rules-toggle {
+    font-size: 0.8rem;
+    color: rgba(244,236,216,0.6);
+    cursor: pointer;
+    text-decoration: underline;
+    text-align: center;
+  }
+
+  .rules-box {
+    font-size: 0.85rem;
+    line-height: 1.6;
+    color: rgba(244,236,216,0.85);
+    background: rgba(244,236,216,0.05);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 14px 18px;
+    display: none;
+  }
+
+  .rules-box.open { display: block; }
+
+  .rules-box h3 {
+    margin: 0 0 6px;
+    color: var(--accent-light);
+    font-size: 0.95rem;
+  }
+
+  /* ── Animation layer ── */
+  .board-wrap { overflow: visible; }
+
+  .anim-piece {
+    position: absolute;
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.3rem;
+    font-weight: 700;
+    will-change: transform;
+    transition: transform 0.22s cubic-bezier(0.25, 0.8, 0.35, 1),
+                box-shadow 0.22s ease;
+  }
+
+  .anim-piece.dark {
+    background: radial-gradient(circle at 35% 30%, #4a3d33, #1c1714 75%);
+    border: 2px solid #0d0a08;
+    color: var(--gold);
+    box-shadow: 0 3px 6px rgba(0,0,0,0.5), inset 0 2px 4px rgba(255,255,255,0.08);
+  }
+
+  .anim-piece.light {
+    background: radial-gradient(circle at 35% 30%, #fff6e6, var(--accent-light) 75%);
+    border: 2px solid #a9742f;
+    color: #5a3a14;
+    box-shadow: 0 3px 6px rgba(0,0,0,0.4), inset 0 2px 4px rgba(255,255,255,0.4);
+  }
+
+  @keyframes capture-pop {
+    0%   { transform: scale(1);    opacity: 1; }
+    40%  { transform: scale(1.25); opacity: 0.8; }
+    100% { transform: scale(0);    opacity: 0; }
+  }
+
+  .piece.capturing {
+    animation: capture-pop 0.28s cubic-bezier(0.4, 0, 0.6, 1) forwards;
+  }
+
+  @keyframes crown-flash {
+    0%,100% { box-shadow: 0 0 0 0 rgba(212,162,58,0); }
+    50%      { box-shadow: 0 0 0 10px rgba(212,162,58,0.55); }
+  }
+
+  .piece.just-crowned {
+    animation: crown-flash 0.5s ease-out;
+  }
+
+  @media (max-width: 420px) {
+    h1 { font-size: 1.6rem; }
+    .scores { font-size: 0.75rem; gap: 10px; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>da<span>maroc</span></h1>
+    <p class="subtitle">North Africa Draughts Game</p>
+  </header>
+
+  <div class="status-bar">
+    <div class="turn-indicator">
+      <span class="turn-dot dark" id="turnDot"></span>
+      <span id="turnLabel">Dark to move</span>
+    </div>
+    <div class="scores">
+      <span>Dark <b id="darkCount">12</b></span>
+      <span>Light <b id="lightCount">12</b></span>
+    </div>
+  </div>
+
+  <div class="board-wrap">
+    <div class="board" id="board"></div>
+  </div>
+
+  <div class="message" id="message"></div>
+
+  <div class="controls">
+    <button id="newGameBtn">New game</button>
+    <button class="secondary" id="undoBtn">Undo</button>
+  </div>
+
+  <div class="rules-toggle" id="rulesToggle">How is this different from regular checkers?</div>
+  <div class="rules-box" id="rulesBox">
+    <h3>Dama rules used here</h3>
+    Regular pieces move and capture diagonally forward only, in the two forward directions. Kings (crowned pieces) can move and capture across any number of empty squares along a diagonal in all four directions &mdash; the "flying king" found in Spanish and North African variants. Captures are mandatory when available, and a single turn can chain up to 3 captures. When multiple capture sequences are possible, only the sequence(s) capturing the most pieces are legal. A piece is crowned upon reaching the farthest row. The game ends when a player has no pieces left or cannot move.
+  </div>
+</div>
+
+<script>
+(function () {
+  const SIZE = 8;
+  const DARK = 'dark';
+  const LIGHT = 'light';
+
+  let board = [];
+  let currentPlayer = DARK;
+  let selected = null; // {r, c}
+  let legalMovesForSelected = [];
+  let forcedPieces = []; // pieces that must continue capturing
+  let history = [];
+
+  const boardEl = document.getElementById('board');
+  const messageEl = document.getElementById('message');
+  const turnLabel = document.getElementById('turnLabel');
+  const turnDot = document.getElementById('turnDot');
+  const darkCountEl = document.getElementById('darkCount');
+  const lightCountEl = document.getElementById('lightCount');
+
+  function initBoard() {
+    board = [];
+    for (let r = 0; r < SIZE; r++) {
+      const row = [];
+      for (let c = 0; c < SIZE; c++) {
+        if ((r + c) % 2 === 0) {
+          if (r < 3) row.push({ color: DARK, king: false });
+          else if (r > 4) row.push({ color: LIGHT, king: false });
+          else row.push(null);
+        } else {
+          row.push(null);
+        }
+      }
+      board.push(row);
+    }
+    currentPlayer = LIGHT;
+    selected = null;
+    legalMovesForSelected = [];
+    forcedPieces = [];
+    history = [];
+    messageEl.textContent = '';
+    render();
+  }
+
+  function cloneBoard(b) {
+    return b.map(row => row.map(cell => cell ? { ...cell } : null));
+  }
+
+  function inBounds(r, c) {
+    return r >= 0 && r < SIZE && c >= 0 && c < SIZE;
+  }
+
+  function opponent(color) {
+    return color === DARK ? LIGHT : DARK;
+  }
+
+  // Forward direction for non-king pieces: dark starts top and moves toward row 7, light starts bottom and moves toward row 0
+  function forwardDir(color) {
+    return color === DARK ? 1 : -1;
+  }
+
+  // Get all capture sequences for a piece at (r,c). Returns array of moves:
+  // { from:{r,c}, to:{r,c}, captures:[{r,c}, ...], finalKing:bool }
+  function getCaptureMoves(b, r, c) {
+    const piece = b[r][c];
+    if (!piece) return [];
+    const results = [];
+    const MAX_CAPTURES = 3;
+
+    function explore(curR, curC, capturedSoFar, boardState, path, arrivedDr, arrivedDc) {
+      const p = boardState[curR][curC];
+      // Regular pieces capped at MAX_CAPTURES; kings are unlimited
+      const atCap = !p.king && capturedSoFar.length >= MAX_CAPTURES;
+      const dirs = p.king
+        ? [[-1,-1],[-1,1],[1,-1],[1,1]]
+        : [[forwardDir(p.color), -1], [forwardDir(p.color), 1]];
+      let foundFurther = false;
+
+      if (!atCap) {
+        for (const [dr, dc] of dirs) {
+          // Kings must not reverse back along the diagonal they just arrived on
+          if (p.king && arrivedDr !== null && dr === -arrivedDr && dc === -arrivedDc) continue;
+          if (p.king) {
+            // Flying king: scan along diagonal for first piece
+            let dist = 1;
+            while (inBounds(curR + dr*dist, curC + dc*dist)) {
+              const checkR = curR + dr*dist;
+              const checkC = curC + dc*dist;
+              const cell = boardState[checkR][checkC];
+              if (cell === null) {
+                dist++;
+                continue;
+              }
+              if (cell.color === p.color) break; // own piece blocks
+              // enemy piece found - check landing squares beyond it
+              if (capturedSoFar.some(cap => cap.r === checkR && cap.c === checkC)) break; // already captured this piece
+              let landDist = dist + 1;
+              while (inBounds(curR + dr*landDist, curC + dc*landDist)) {
+                const landR = curR + dr*landDist;
+                const landC = curC + dc*landDist;
+                if (boardState[landR][landC] !== null) break;
+                // Must not land on a square that was occupied by a piece captured earlier in this chain
+                const isFormerCapture = capturedSoFar.some(cap => cap.r === landR && cap.c === landC);
+                if (isFormerCapture) { landDist++; continue; }
+                // valid landing square - simulate capture
+                foundFurther = true;
+                const newBoard = cloneBoard(boardState);
+                newBoard[landR][landC] = { ...newBoard[curR][curC] };
+                newBoard[curR][curC] = null;
+                newBoard[checkR][checkC] = null;
+                const newCaptured = [...capturedSoFar, { r: checkR, c: checkC }];
+                const newPath = [...path, { r: landR, c: landC }];
+                explore(landR, landC, newCaptured, newBoard, newPath, dr, dc);
+                landDist++;
+              }
+              break; // only first piece along this direction matters
+            }
+          } else {
+            // Regular piece: capture adjacent enemy forward-diagonal, land one square beyond
+            const midR = curR + dr;
+            const midC = curC + dc;
+            const landR = curR + dr*2;
+            const landC = curC + dc*2;
+            if (!inBounds(landR, landC)) continue;
+            const midCell = boardState[midR][midC];
+            const landCell = boardState[landR][landC];
+            if (midCell && midCell.color !== p.color && landCell === null &&
+                !capturedSoFar.some(cap => cap.r === midR && cap.c === midC)) {
+              foundFurther = true;
+              const newBoard = cloneBoard(boardState);
+              newBoard[landR][landC] = { ...newBoard[curR][curC] };
+              newBoard[curR][curC] = null;
+              newBoard[midR][midC] = null;
+              const newCaptured = [...capturedSoFar, { r: midR, c: midC }];
+              const newPath = [...path, { r: landR, c: landC }];
+              explore(landR, landC, newCaptured, newBoard, newPath, dr, dc);
+            }
+          }
+        }
+      }
+
+      if ((!foundFurther || atCap) && capturedSoFar.length > 0) {
+        // end of a capture sequence (no further jumps, or capture cap reached)
+        const finalR = path[path.length - 1].r;
+        const willCrown = !p.king && isPromotionRow(p.color, finalR);
+        results.push({
+          from: { r, c },
+          to: { r: path[path.length - 1].r, c: path[path.length - 1].c },
+          path: path,
+          captures: capturedSoFar,
+          finalKing: p.king || willCrown
+        });
+      }
+    }
+
+    explore(r, c, [], b, [], null, null);
+    return results;
+  }
+
+  function isPromotionRow(color, r) {
+    return (color === DARK && r === SIZE - 1) || (color === LIGHT && r === 0);
+  }
+
+  // Get simple (non-capture) moves for a piece
+  function getSimpleMoves(b, r, c) {
+    const piece = b[r][c];
+    if (!piece) return [];
+    const moves = [];
+    const dirs = piece.king
+      ? [[-1,-1],[-1,1],[1,-1],[1,1]]
+      : [[forwardDir(piece.color), -1], [forwardDir(piece.color), 1]];
+
+    for (const [dr, dc] of dirs) {
+      if (piece.king) {
+        let dist = 1;
+        while (inBounds(r + dr*dist, c + dc*dist) && b[r + dr*dist][c + dc*dist] === null) {
+          const toR = r + dr*dist;
+          const toC = c + dc*dist;
+          moves.push({ from: {r,c}, to: {r: toR, c: toC}, path: [{r: toR, c: toC}], captures: [], finalKing: true });
+          dist++;
+        }
+      } else {
+        const toR = r + dr;
+        const toC = c + dc;
+        if (inBounds(toR, toC) && b[toR][toC] === null) {
+          const willCrown = isPromotionRow(piece.color, toR);
+          moves.push({ from: {r,c}, to: {r: toR, c: toC}, path: [{r: toR, c: toC}], captures: [], finalKing: willCrown });
+        }
+      }
+    }
+    return moves;
+  }
+
+  // Get all moves for the current player. If any capture exists anywhere on board,
+  // only capture moves are legal (mandatory capture rule).
+  function getAllMoves(b, color) {
+    let allCaptures = [];
+    let allSimple = [];
+    for (let r = 0; r < SIZE; r++) {
+      for (let c = 0; c < SIZE; c++) {
+        const piece = b[r][c];
+        if (piece && piece.color === color) {
+          const caps = getCaptureMoves(b, r, c);
+          if (caps.length) allCaptures.push(...caps);
+          allSimple.push(...getSimpleMoves(b, r, c));
+        }
+      }
+    }
+    if (allCaptures.length > 0) {
+      const maxCaptures = Math.max(...allCaptures.map(m => m.captures.length));
+      return allCaptures.filter(m => m.captures.length === maxCaptures);
+    }
+    return allSimple;
+  }
+
+  function getMovesForPiece(b, r, c, color) {
+    const all = getAllMoves(b, color);
+    return all.filter(m => m.from.r === r && m.from.c === c);
+  }
+
+  function applyMove(b, move) {
+    const newBoard = cloneBoard(b);
+    const piece = { ...newBoard[move.from.r][move.from.c] };
+    newBoard[move.from.r][move.from.c] = null;
+    for (const cap of move.captures) {
+      newBoard[cap.r][cap.c] = null;
+    }
+    piece.king = move.finalKing;
+    newBoard[move.to.r][move.to.c] = piece;
+    return newBoard;
+  }
+
+  function render() {
+    boardEl.innerHTML = '';
+    const allMoves = getAllMoves(board, currentPlayer);
+    const movablePieces = new Set(allMoves.map(m => `${m.from.r},${m.from.c}`));
+
+    for (let r = 0; r < SIZE; r++) {
+      for (let c = 0; c < SIZE; c++) {
+        const sq = document.createElement('div');
+        const isLight = (r + c) % 2 === 1;
+        sq.className = `square ${isLight ? 'light' : 'dark'}`;
+        sq.dataset.r = r;
+        sq.dataset.c = c;
+
+        const piece = board[r][c];
+
+        if (selected && selected.r === r && selected.c === c) {
+          sq.classList.add('selected');
+        }
+
+        const isLegalTarget = legalMovesForSelected.some(m => m.to.r === r && m.to.c === c);
+        if (isLegalTarget) {
+          sq.classList.add('selectable');
+        }
+
+        if (piece) {
+          const pieceEl = document.createElement('div');
+          pieceEl.className = `piece ${piece.color}${piece.king ? ' king' : ''}`;
+          if (piece.color === currentPlayer && movablePieces.has(`${r},${c}`)) {
+            pieceEl.style.cursor = 'pointer';
+          } else {
+            pieceEl.style.cursor = 'default';
+          }
+          sq.appendChild(pieceEl);
+        }
+
+        sq.addEventListener('click', () => onSquareClick(r, c));
+        boardEl.appendChild(sq);
+      }
+    }
+
+    updateStatus();
+  }
+
+  function updateStatus() {
+    let darkCount = 0, lightCount = 0;
+    for (let r = 0; r < SIZE; r++) {
+      for (let c = 0; c < SIZE; c++) {
+        const p = board[r][c];
+        if (p) {
+          if (p.color === DARK) darkCount++;
+          else lightCount++;
+        }
+      }
+    }
+    darkCountEl.textContent = darkCount;
+    lightCountEl.textContent = lightCount;
+
+    turnDot.className = `turn-dot ${currentPlayer}`;
+
+    const moves = getAllMoves(board, currentPlayer);
+    if (moves.length === 0 || darkCount === 0 || lightCount === 0) {
+      let winner;
+      if (darkCount === 0) winner = 'Light';
+      else if (lightCount === 0) winner = 'Dark';
+      else winner = currentPlayer === DARK ? 'Light' : 'Dark';
+      turnLabel.textContent = `${winner} wins!`;
+      messageEl.textContent = `${winner === 'Dark' ? 'Dark' : 'Light'} has no legal moves remaining.`;
+      return;
+    }
+
+    turnLabel.textContent = `${currentPlayer === DARK ? 'Dark' : 'Light'} to move`;
+
+    const hasCapture = moves.some(m => m.captures.length > 0);
+    messageEl.textContent = hasCapture ? 'Capture available — a jump is mandatory.' : '';
+  }
+
+  function onSquareClick(r, c) {
+    if (animating) return;
+    const moves = getAllMoves(board, currentPlayer);
+    if (moves.length === 0) return; // game over
+
+    const piece = board[r][c];
+
+    // If a piece is selected and this is a legal destination, move it
+    if (selected) {
+      const move = legalMovesForSelected.find(m => m.to.r === r && m.to.c === c);
+      if (move) {
+        performMove(move);
+        return;
+      }
+    }
+
+    // Otherwise, try selecting a piece
+    if (piece && piece.color === currentPlayer) {
+      const pieceMoves = moves.filter(m => m.from.r === r && m.from.c === c);
+      if (pieceMoves.length === 0) {
+        // either not this piece's turn to capture, or no moves for it
+        if (moves.some(m => m.captures.length > 0)) {
+          messageEl.textContent = 'Another piece must capture — select that piece instead.';
+        }
+        selected = null;
+        legalMovesForSelected = [];
+        render();
+        return;
+      }
+      // For kings: filter to max-capture options, then auto-execute if only one unique sequence
+      if (piece.king && pieceMoves.length > 1) {
+        const captureMoves = pieceMoves.filter(m => m.captures.length > 0);
+        if (captureMoves.length > 0) {
+          const maxCap = Math.max(...captureMoves.map(m => m.captures.length));
+          const best = captureMoves.filter(m => m.captures.length === maxCap);
+          // Unique destinations among the best sequences
+          const uniqueDests = new Set(best.map(m => `${m.to.r},${m.to.c}`));
+          if (uniqueDests.size === 1) {
+            performMove(best[0]);
+            return;
+          }
+          // Multiple choices — show them
+          selected = { r, c };
+          legalMovesForSelected = best;
+          render();
+          return;
+        }
+        // No captures — simple moves: auto-execute if only 1 destination
+        const uniqueDests = new Set(pieceMoves.map(m => `${m.to.r},${m.to.c}`));
+        if (uniqueDests.size === 1) {
+          performMove(pieceMoves[0]);
+          return;
+        }
+        selected = { r, c };
+        legalMovesForSelected = pieceMoves;
+        render();
+        return;
+      }
+      // Auto-move if only one option exists (regular pieces or king with 1 move)
+      if (pieceMoves.length === 1) {
+        performMove(pieceMoves[0]);
+        return;
+      }
+      selected = { r, c };
+      legalMovesForSelected = pieceMoves;
+      render();
+    } else {
+      selected = null;
+      legalMovesForSelected = [];
+      render();
+    }
+  }
+
+  // ── Animation helpers ──────────────────────────────────────────────
+  let animating = false;
+
+  function getSquareEl(r, c) {
+    return boardEl.querySelector(`[data-r="${r}"][data-c="${c}"]`);
+  }
+
+  function squareCenterRelativeToWrap(r, c) {
+    const wrapRect = boardEl.parentElement.getBoundingClientRect();
+    const sqEl = getSquareEl(r, c);
+    if (!sqEl) return null;
+    const sqRect = sqEl.getBoundingClientRect();
+    return {
+      x: sqRect.left - wrapRect.left + sqRect.width / 2,
+      y: sqRect.top  - wrapRect.top  + sqRect.height / 2,
+      w: sqRect.width,
+      h: sqRect.height
+    };
+  }
+
+  function animateMove(move, wasKing, callback) {
+    const piece = board[move.from.r][move.from.c];
+    const fromPos = squareCenterRelativeToWrap(move.from.r, move.from.c);
+    if (!fromPos) { callback(); return; }
+
+    const pieceSize = fromPos.w * 0.76;
+    const HOP_DUR   = 200; // ms per diagonal hop
+    const LAND_DUR  = 90;  // ms settle bounce at each landing
+    const POP_DUR   = 280; // ms capture-pop animation (matches CSS)
+
+    // Build floating anim piece at source
+    const anim = document.createElement('div');
+    anim.className = `anim-piece ${piece.color}${piece.king ? ' king' : ''}`;
+    if (piece.king) anim.textContent = '♛';
+    anim.style.width     = pieceSize + 'px';
+    anim.style.height    = pieceSize + 'px';
+    anim.style.left      = (fromPos.x - pieceSize / 2) + 'px';
+    anim.style.top       = (fromPos.y - pieceSize / 2) + 'px';
+    anim.style.transform = 'translate(0,0) scale(1)';
+    anim.style.transition = 'none';
+    boardEl.parentElement.appendChild(anim);
+
+    // Hide source piece in grid immediately
+    const srcEl = getSquareEl(move.from.r, move.from.c);
+    if (srcEl) { const p = srcEl.querySelector('.piece'); if (p) p.style.opacity = '0'; }
+
+    // Build waypoints: [ {r, c} ] — from.r/c already handled, just the path steps
+    // For each hop i -> i+1 in path, find which capture (if any) lies between them
+    const steps = move.path; // array of {r, c} landing squares in sequence
+    let curX = fromPos.x;
+    let curY = fromPos.y;
+    let stepIndex = 0;
+    let prevR = move.from.r;
+    let prevC = move.from.c;
+
+    function findCaptureBetween(fromR, fromC, toR, toC) {
+      // The captured piece lies on a diagonal between fromR/C and toR/C
+      // Walk diagonally from from toward to and find a capture entry that matches
+      const dr = Math.sign(toR - fromR);
+      const dc = Math.sign(toC - fromC);
+      let r = fromR + dr;
+      let c = fromC + dc;
+      while (r !== toR || c !== toC) {
+        const match = move.captures.find(cap => cap.r === r && cap.c === c);
+        if (match) return match;
+        r += dr;
+        c += dc;
+      }
+      return null;
+    }
+
+    function doHop() {
+      if (stepIndex >= steps.length) {
+        // All hops done — final land settle then finish
+        anim.style.transition = `transform ${LAND_DUR}ms cubic-bezier(0.34,1.56,0.64,1), box-shadow ${LAND_DUR}ms ease`;
+        const dx = curX - fromPos.x;
+        const dy = curY - fromPos.y;
+        anim.style.transform = `translate(${dx}px,${dy}px) scale(1)`;
+        anim.style.boxShadow = '';
+        setTimeout(() => { anim.remove(); callback(); }, LAND_DUR);
+        return;
+      }
+
+      const step = steps[stepIndex];
+      const toPos = squareCenterRelativeToWrap(step.r, step.c);
+      if (!toPos) { anim.remove(); callback(); return; }
+
+      const dx = toPos.x - fromPos.x;
+      const dy = toPos.y - fromPos.y;
+
+      // Find the captured piece between prevR/C and this step
+      const cap = findCaptureBetween(prevR, prevC, step.r, step.c);
+
+      // Slide to next square — lifted scale while in air
+      anim.style.transition = `transform ${HOP_DUR}ms cubic-bezier(0.25,0.8,0.35,1), box-shadow ${HOP_DUR}ms ease`;
+      anim.style.transform  = `translate(${dx}px,${dy}px) scale(1.1)`;
+      anim.style.boxShadow  = '0 12px 28px rgba(0,0,0,0.55)';
+
+      // Pop captured piece at midpoint of the hop
+      if (cap) {
+        setTimeout(() => {
+          const capSqEl = getSquareEl(cap.r, cap.c);
+          if (capSqEl) {
+            const capPiece = capSqEl.querySelector('.piece');
+            if (capPiece) capPiece.classList.add('capturing');
+          }
+        }, HOP_DUR / 2);
+      }
+
+      curX = toPos.x;
+      curY = toPos.y;
+      prevR = step.r;
+      prevC = step.c;
+      stepIndex++;
+
+      // Brief land-pause between hops so the eye can follow each jump
+      setTimeout(() => {
+        // Micro settle at landing square before next hop
+        anim.style.transition = `transform ${LAND_DUR}ms cubic-bezier(0.34,1.56,0.64,1)`;
+        anim.style.transform  = `translate(${dx}px,${dy}px) scale(1)`;
+        setTimeout(doHop, LAND_DUR);
+      }, HOP_DUR);
+    }
+
+    // Tiny lift before first hop
+    requestAnimationFrame(() => {
+      anim.style.transition = 'transform 0.08s ease, box-shadow 0.08s ease';
+      anim.style.transform  = 'translate(0,0) scale(1.08)';
+      anim.style.boxShadow  = '0 12px 28px rgba(0,0,0,0.55)';
+      setTimeout(doHop, 80);
+    });
+  }
+
+  // ── performMove (animated) ─────────────────────────────────────────
+  function performMove(move) {
+    if (animating) return;
+    animating = true;
+
+    const wasKing = board[move.from.r][move.from.c].king;
+
+    animateMove(move, wasKing, () => {
+      history.push({ board: cloneBoard(board), currentPlayer });
+      board = applyMove(board, move);
+      selected = null;
+      legalMovesForSelected = [];
+      animating = false;
+
+      const justPromoted = !wasKing && move.finalKing;
+      if (justPromoted) {
+        currentPlayer = opponent(currentPlayer);
+        render();
+        // Flash crown on the newly promoted piece
+        const newKingEl = getSquareEl(move.to.r, move.to.c);
+        if (newKingEl) {
+          const p = newKingEl.querySelector('.piece');
+          if (p) p.classList.add('just-crowned');
+        }
+        return;
+      }
+
+      currentPlayer = opponent(currentPlayer);
+      render();
+    });
+  }
+
+  function undo() {
+    if (history.length === 0) return;
+    const last = history.pop();
+    board = last.board;
+    currentPlayer = last.currentPlayer;
+    selected = null;
+    legalMovesForSelected = [];
+    render();
+  }
+
+  document.getElementById('newGameBtn').addEventListener('click', initBoard);
+  document.getElementById('undoBtn').addEventListener('click', undo);
+  document.getElementById('rulesToggle').addEventListener('click', () => {
+    document.getElementById('rulesBox').classList.toggle('open');
+  });
+
+  initBoard();
+})();
+</script>
+</body>
+</html>
