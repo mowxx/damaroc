@@ -16,8 +16,8 @@ const lightPawn = new Image();
 const lightKing = new Image();
 const blackPawn = new Image();
 const blackKing = new Image();
-lightPawn.src = '.././imgs/w-p.png';
-lightKing.src = '.././imgs/w-k.png';
+lightPawn.src = './imgs/w-p.png';
+lightKing.src = './imgs/w-k.png';
 blackPawn.src = './imgs/b-p.png';
 blackKing.src = './imgs/b-k.png';
 
