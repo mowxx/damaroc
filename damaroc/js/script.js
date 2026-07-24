@@ -16,10 +16,10 @@ const lightPawn = new Image();
 const lightKing = new Image();
 const blackPawn = new Image();
 const blackKing = new Image();
-lightPawn.src = 'https://i.ibb.co/k60qcwTd/w-p.png'; // './imgs/w-p.png';
-lightKing.src = 'https://i.ibb.co/k60qcwTd/w-k.png'; // './imgs/w-k.png';
-blackPawn.src = 'https://i.ibb.co/k60qcwTd/b-p.png'; // './imgs/b-p.png';
-blackKing.src = 'https://i.ibb.co/k60qcwTd/b-k.png'; // './imgs/b-k.png';
+lightPawn.src = './imgs/w-p.png';
+lightKing.src = './imgs/w-k.png';
+blackPawn.src = './imgs/b-p.png';
+blackKing.src = './imgs/b-k.png';
 
 const canvas = document.getElementById("board");
 const ctx = canvas.getContext("2d");
